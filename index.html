@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>To-Do List</title>
+  <title>To-Do List App</title>
 
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #74ebd5, #acb6e5);
+      background: linear-gradient(135deg, #667eea, #764ba2);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -16,43 +16,46 @@
     }
 
     .todo-container {
-      background: white;
+      background: #ffffff;
       padding: 25px;
-      width: 320px;
-      border-radius: 12px;
+      width: 360px;
+      border-radius: 15px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
     h2 {
       text-align: center;
-      color: #333;
+      color: #4a4a4a;
       margin-bottom: 15px;
     }
 
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
     input {
-      width: 70%;
-      padding: 8px;
-      border-radius: 5px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
       border: 1px solid #ccc;
       outline: none;
     }
 
-    input:focus {
-      border-color: #6c63ff;
-    }
-
     button {
-      padding: 8px 12px;
+      padding: 10px 14px;
       border: none;
-      border-radius: 5px;
-      background: #6c63ff;
-      color: white;
+      border-radius: 8px;
       cursor: pointer;
-      transition: background 0.3s;
+      background: #667eea;
+      color: white;
+      font-weight: bold;
+      transition: 0.3s;
     }
 
     button:hover {
-      background: #574fd6;
+      background: #5a67d8;
+      transform: scale(1.05);
     }
 
     ul {
@@ -65,22 +68,52 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #f2f2f2;
-      padding: 8px 10px;
-      border-radius: 6px;
-      margin-bottom: 8px;
-      font-size: 14px;
+      padding: 10px;
+      margin-top: 8px;
+      background: #f1f5f9;
+      border-radius: 10px;
+      transition: 0.3s;
     }
 
-    li button {
-      background: #ff4d4d;
-      padding: 4px 8px;
-      border-radius: 4px;
+    li:hover {
+      background: #e2e8f0;
+    }
+
+    li.completed {
+      text-decoration: line-through;
+      background: #c6f6d5;
+      color: #2f855a;
+    }
+
+    li span {
+      cursor: pointer;
+      flex: 1;
+    }
+
+    li .actions button {
+      background: #ed64a6;
+      margin-left: 5px;
+      padding: 6px 8px;
       font-size: 12px;
     }
 
-    li button:hover {
-      background: #e60000;
+    li .actions button:hover {
+      background: #d53f8c;
+    }
+
+    .filters {
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .filters button {
+      background: #48bb78;
+      margin: 3px;
+      padding: 7px 12px;
+    }
+
+    .filters button:hover {
+      background: #38a169;
     }
   </style>
 </head>
@@ -90,35 +123,88 @@
   <div class="todo-container">
     <h2>To-Do List</h2>
 
-    <input type="text" id="taskInput" placeholder="Enter task">
-    <button onclick="addTask()">Add</button>
+    <div class="input-group">
+      <input type="text" id="taskInput" placeholder="Enter task">
+      <button onclick="addTask()">Add</button>
+    </div>
 
     <ul id="taskList"></ul>
+
+    <div class="filters">
+      <button onclick="filterTasks('all')">All</button>
+      <button onclick="filterTasks('completed')">Completed</button>
+      <button onclick="filterTasks('pending')">Pending</button>
+    </div>
   </div>
 
   <script>
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    function saveTasks() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function renderTasks(filter = "all") {
+      const list = document.getElementById("taskList");
+      list.innerHTML = "";
+
+      tasks.forEach((task, index) => {
+        if (
+          filter === "completed" && !task.completed ||
+          filter === "pending" && task.completed
+        ) return;
+
+        const li = document.createElement("li");
+        li.className = task.completed ? "completed" : "";
+
+        li.innerHTML = `
+          <span onclick="toggleTask(${index})">${task.text}</span>
+          <div class="actions">
+            <button onclick="editTask(${index})">Edit</button>
+            <button onclick="deleteTask(${index})">Delete</button>
+          </div>
+        `;
+
+        list.appendChild(li);
+      });
+    }
+
     function addTask() {
-      let taskInput = document.getElementById("taskInput");
-      let taskText = taskInput.value;
+      const input = document.getElementById("taskInput");
+      if (input.value.trim() === "") return;
 
-      if (taskText === "") {
-        alert("Please enter a task");
-        return;
+      tasks.push({ text: input.value, completed: false });
+      input.value = "";
+      saveTasks();
+      renderTasks();
+    }
+
+    function toggleTask(index) {
+      tasks[index].completed = !tasks[index].completed;
+      saveTasks();
+      renderTasks();
+    }
+
+    function editTask(index) {
+      const newText = prompt("Edit task:", tasks[index].text);
+      if (newText !== null && newText.trim() !== "") {
+        tasks[index].text = newText;
+        saveTasks();
+        renderTasks();
       }
-
-      let li = document.createElement("li");
-      li.innerHTML = `
-        ${taskText}
-        <button onclick="deleteTask(this)">X</button>
-      `;
-
-      document.getElementById("taskList").appendChild(li);
-      taskInput.value = "";
     }
 
-    function deleteTask(button) {
-      button.parentElement.remove();
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      saveTasks();
+      renderTasks();
     }
+
+    function filterTasks(type) {
+      renderTasks(type);
+    }
+
+    renderTasks();
   </script>
 
 </body>
